@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">AKG Bensheim</string>
+    <string name="refresh_description">Aktualisieren</string>
+    <string name="thisWeek">Diese Woche</string>
+    <string name="nextWeek">Nächste Woche</string>
+    <string name="title_activity_info">Informationen</string>
+    <string name="info_description">Info</string>
+
+</resources>

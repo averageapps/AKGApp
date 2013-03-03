@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    tools:context=".Vertretungsplan" >
+
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/weekSelector" />
+
+    <RadioGroup
+        android:id="@+id/weekSelector"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/refreshButton"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:orientation="horizontal" >
+
+        <RadioButton
+            android:id="@+id/thisWeek"
+            android:layout_width="89dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/thisWeek"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <RadioButton
+            android:id="@+id/nextWeek"
+            android:layout_width="97dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/nextWeek"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+    </RadioGroup>
+
+    <ImageButton
+        android:id="@+id/refreshButton"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:contentDescription="@string/refresh_description"
+        android:src="@drawable/ic_menu_refresh" />
+    
+</RelativeLayout>
