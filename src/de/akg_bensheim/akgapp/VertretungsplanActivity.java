@@ -112,11 +112,30 @@ public class VertretungsplanActivity extends Activity {
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		Intent intent = null;
 		switch (item.getItemId()) {
 		case R.id.menu_info:
-			startActivity(new Intent(VertretungsplanActivity.this,
+			intent = new Intent(new Intent(VertretungsplanActivity.this,
 					InfoActivity.class));
+			startActivity(intent);
 			return true;
+		case R.id.menu_klausuren:
+			intent = new Intent(new Intent(VertretungsplanActivity.this,
+					DocumentActivity.class));
+			intent.putExtra("url", "http://www.akg-bensheim.de/akgweb2011/mediaCache/KlausurPlan_2.Hj12_13/");
+			startActivity(intent);
+			return true;
+		case R.id.menu_baender:
+			intent = new Intent(new Intent(VertretungsplanActivity.this,
+					DocumentActivity.class));
+			intent.putExtra("url", "http://www.akg-bensheim.de/akgweb2011/mediaCache/Baenderuebersicht_GO_2012-13/");
+			startActivity(intent);
+			return true;
+//		case R.id.menu_settings:
+//			intent = new Intent(new Intent(VertretungsplanActivity.this,
+//					SettingsActivity.class));
+//			startActivity(intent);
+//			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -249,13 +268,13 @@ public class VertretungsplanActivity extends Activity {
 				break;
 			case -2: // Selbstdefinierter Code für Fehler bei der Kommunikation
 						// mit dem Server
-				customHtml = "<html><body><font size=6>Verbindungsfehler.<br>Bitte Internetverbindung überprüfen.(</font></body></html>";
+				customHtml = "<html><body><font size=6>Verbindungsfehler.<br>Bitte Internetverbindung überpr&uumlfen.(</font></body></html>";
 				webView.loadData(customHtml, "text/html", "UTF-8");
 				break;
 			default:
 				customHtml = "<html><body><font size=6>Unbekannter Fehler. Code: "
 						+ httpCode
-						+ "<br>Bitte Entwickler kontaktieren.</font></body></html>";
+						+ "<br>Bitte Entwickler kontaktieren und Code mitteilen.</font></body></html>";
 				webView.loadData(customHtml, "text/html", "UTF-8");
 				break;
 			}

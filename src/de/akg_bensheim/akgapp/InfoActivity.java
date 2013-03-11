@@ -24,7 +24,6 @@ public class InfoActivity extends Activity {
 		Linkify.addLinks(textView, Linkify.ALL);
 	}
 
-
 	// Liest (beliebige) Dateien in einen String
 	public String readFile(int id) {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(this
