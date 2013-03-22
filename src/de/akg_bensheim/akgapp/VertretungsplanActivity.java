@@ -24,7 +24,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -225,13 +224,14 @@ public class VertretungsplanActivity extends Activity {
 			file = new File(Environment.getExternalStorageDirectory(), "/akg-app/" + filename);
 			if (file.exists()) {
 				// Abbrechen, wenn die Datei schon existiert
-				Log.d("PDF", "existiert");
 				return filename;
 			}
 			// Sonst: Datei herunterladen
 			try {
 				folder = new File(Environment.getExternalStorageDirectory(), "/akg-app");
-				folder.mkdir();
+				if (!folder.exists()) {
+					folder.mkdir();
+				}
 				URL url = new URL(params[0]);
 				InputStream input = new BufferedInputStream(url.openStream());
 				OutputStream output = new FileOutputStream(file);
