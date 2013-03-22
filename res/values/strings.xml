@@ -9,7 +9,7 @@
     <string name="info_description">Info</string>
     <string name="settings_description">(keine) Einstellungen</string>
     <string name="klausuren_description">Klausurplan</string>
-    <string name="baender_description">Bänderrplan</string>
+    <string name="baender_description">Bänderplan</string>
     <string name="title_activity_document">Dokumentanzeige (beta)</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>

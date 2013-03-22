@@ -1,6 +1,11 @@
 package de.akg_bensheim.akgapp;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
@@ -8,19 +13,23 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
-
-import de.akg_bensheim.akgapp.R;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.ImageButton;
 import android.widget.RadioButton;
@@ -29,31 +38,34 @@ import android.widget.Toast;
 
 public class VertretungsplanActivity extends Activity {
 
-	private Calendar calendar;
-	private ImageButton refreshButton;
-	private WebView webView;
-	private RadioGroup weekSelector;
-	private String weekNumberPadded;
-	private int currentWeekNumber;
-	private int currentWeekDay;
-	private String url;
-	private int selectedWeekNumber;
+	protected Calendar calendar;
+	protected ImageButton refreshButton;
+	protected WebView webView;
+	protected RadioGroup weekSelector;
+	protected String weekNumberPadded;
+	protected int currentWeekNumber;
+	protected int currentWeekDay;
+	protected int selectedWeekNumber;
+	protected String planURLString;
+	protected WebSettings webViewSettings; 
 
-	private final String urlPrefix = "http://www.akg-bensheim.de/akgweb2011/content/Vertretung/w/";
-	private final String urlSuffix = "/w00000.htm";
+	// Diese URL-"Konstanten" mÃ¼ssen ggf. angepasst werden, wenn sich das CMS
+	// oder das UNTIS-Exportformat auf dem Server Ã¤ndert
+	protected static final String VERTRETUNGSPLAN_URL_PREFIX = "http://www.akg-bensheim.de/akgweb2011/content/Vertretung/w/";
+	protected static final String VERTRETUNGSPLAN_URL_SUFFIX = "/w00000.htm";
+	// Diese URLs mÃ¼ssen jedes Halbjahr neu angepasst werden:
+	protected static final String KLAUSURPLAN_URL = "http://www.akg-bensheim.de/akgweb2011/mediaCache/KlausurPlan_2.Hj12_13/";
+	protected static final String BAENDERPLAN_URL = "http://www.akg-bensheim.de/akgweb2011/mediaCache/Baenderuebersicht_GO_2012-13/";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_vertretungsplan);
 
-		// <Kalender-Initialisierung>
-
+		// Kalender-Initialisierung
 		calendar = Calendar.getInstance(Locale.GERMANY);
 		currentWeekNumber = calendar.get(Calendar.WEEK_OF_YEAR);
 		currentWeekDay = calendar.get(Calendar.DAY_OF_WEEK);
-
-		// </Kalender-Initialisierung>
 
 		// <GUI-Initialisierung>
 
@@ -78,11 +90,12 @@ public class VertretungsplanActivity extends Activity {
 					}
 				});
 
-		// Settings teilweise fragwürdig, sollten nochmal überprüft werden
-		webView.getSettings().setUseWideViewPort(true);
-		webView.getSettings().setLoadWithOverviewMode(true);
-		webView.getSettings().setSupportZoom(true);
-		webView.getSettings().setBuiltInZoomControls(true);
+		// teilweise fragwÃ¼rdig, sollten nochmal Ã¼berprÃ¼ft werden:
+		webViewSettings = webView.getSettings();
+		webViewSettings.setUseWideViewPort(true);
+		webViewSettings.setLoadWithOverviewMode(true);
+		webViewSettings.setSupportZoom(true);
+		webViewSettings.setBuiltInZoomControls(true);
 
 		refreshButton.setOnClickListener(new OnClickListener() {
 			@Override
@@ -93,8 +106,8 @@ public class VertretungsplanActivity extends Activity {
 		});
 
 		// </GUI-Initialisierung>
-
-		// Wählt beim Start eine sinnvolle Woche aus
+		
+		// WÃ¤hlt beim Start eine sinnvolle Woche aus
 		if (currentWeekDay == Calendar.SATURDAY
 				|| currentWeekDay == Calendar.SUNDAY) {
 			check(R.id.nextWeek);
@@ -105,8 +118,7 @@ public class VertretungsplanActivity extends Activity {
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.vertretungsplan_activity_menu, menu);
+		getMenuInflater().inflate(R.menu.vertretungsplan_activity_menu, menu);
 		return true;
 	}
 
@@ -120,60 +132,152 @@ public class VertretungsplanActivity extends Activity {
 			startActivity(intent);
 			return true;
 		case R.id.menu_klausuren:
-			intent = new Intent(new Intent(VertretungsplanActivity.this,
-					DocumentActivity.class));
-			intent.putExtra("url", "http://www.akg-bensheim.de/akgweb2011/mediaCache/KlausurPlan_2.Hj12_13/");
-			startActivity(intent);
+			new PDFLoader()
+					.execute(KLAUSURPLAN_URL, "klausurplan.pdf");
 			return true;
 		case R.id.menu_baender:
-			intent = new Intent(new Intent(VertretungsplanActivity.this,
-					DocumentActivity.class));
-			intent.putExtra("url", "http://www.akg-bensheim.de/akgweb2011/mediaCache/Baenderuebersicht_GO_2012-13/");
-			startActivity(intent);
+			new PDFLoader()
+			.execute(BAENDERPLAN_URL, "baenderplan.pdf");
 			return true;
-//		case R.id.menu_settings:
-//			intent = new Intent(new Intent(VertretungsplanActivity.this,
-//					SettingsActivity.class));
-//			startActivity(intent);
-//			return true;
+		// case R.id.menu_settings:
+		// intent = new Intent(new Intent(VertretungsplanActivity.this,
+		// SettingsActivity.class));
+		// startActivity(intent);
+		// return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
 	}
 
-	private void setControlsEnabled(boolean b) {
+	protected void setControlsEnabled(boolean b) {
 		for (int i = 0; i < weekSelector.getChildCount(); i++) {
 			((RadioButton) weekSelector.getChildAt(i)).setEnabled(b);
 		}
 		refreshButton.setEnabled(b);
 	}
 
-	// Workaround-Methode für den letzten Teil der onCreate-Methode,
-	// weil RadioGroup.check(id) zwei onCheckedChanged-Events produzieren würde.
+	// Workaround-Methode fÃ¼r den letzten Teil der onCreate-Methode,
+	// weil RadioGroup.check(id) zwei onCheckedChanged-Events produzieren wÃ¼rde.
 	// Weitere Infos hier:
 	// http://code.google.com/p/android/issues/detail?id=4785
-	private void check(int id) {
+	protected void check(int id) {
 		View item = findViewById(id);
 		if (item != null) {
 			item.performClick();
 		}
 	}
 
-	private void loadPage(int weekNumber) {
+	protected void loadPage(int weekNumber) {
 		weekNumberPadded = String.format("%02d", weekNumber);
-		url = urlPrefix + weekNumberPadded + urlSuffix;
-		new PageLoader().execute(url);
-		new DateFetcher().execute(url);
+		planURLString = VERTRETUNGSPLAN_URL_PREFIX + weekNumberPadded
+				+ VERTRETUNGSPLAN_URL_SUFFIX;
+		new PageLoader().execute(planURLString);
+		new DateFetcher().execute(planURLString);
 	}
 
-	private void toast(String message) {
+	protected void toast(String message) {
 		Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT)
 				.show();
 	}
 
-	private class DateFetcher extends AsyncTask<String, Void, String> {
+	protected class PDFLoader extends AsyncTask<String, Void, String> {
+		
+		private boolean mExternalStorageAvailable;
+		private boolean mExternalStorageWriteable;
+		private String state;
+		
+		private String filename;
+		private File file;
+		private File folder;
+		private Intent intent;
+		private PackageManager pm;
+		private List<ResolveInfo> activities;
 
-		private String ownURL;
+		@Override
+		protected String doInBackground(String... params) {
+			
+			// <external-storage-check>
+			
+			mExternalStorageAvailable = false;
+			mExternalStorageWriteable = false;
+			state = Environment.getExternalStorageState();
+
+			if (Environment.MEDIA_MOUNTED.equals(state)) {
+			    mExternalStorageAvailable = mExternalStorageWriteable = true;
+			} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+			    mExternalStorageAvailable = true;
+			    mExternalStorageWriteable = false;
+			} else {
+			    mExternalStorageAvailable = mExternalStorageWriteable = false;
+			}
+			
+			if (! mExternalStorageAvailable) {
+				return "no_external";
+			}
+			// KÃ¶nnte man noch differenzieren, wenn man lustig ist
+			if (! mExternalStorageWriteable) {
+				return "no_external";
+			}
+			
+			// </external-storage-check>
+
+			filename = params[1];
+			file = new File(Environment.getExternalStorageDirectory(), "/akg-app/" + filename);
+			if (file.exists()) {
+				// Abbrechen, wenn die Datei schon existiert
+				Log.d("PDF", "existiert");
+				return filename;
+			}
+			// Sonst: Datei herunterladen
+			try {
+				folder = new File(Environment.getExternalStorageDirectory(), "/akg-app");
+				folder.mkdir();
+				URL url = new URL(params[0]);
+				InputStream input = new BufferedInputStream(url.openStream());
+				OutputStream output = new FileOutputStream(file);
+				byte data[] = new byte[1024];
+				int count;
+				while ((count = input.read(data)) != -1) {
+					output.write(data, 0, count);
+				}
+				output.flush();
+				output.close();
+				input.close();
+			} catch (Exception e) {
+				return "download_error";
+			}
+			return filename;
+		}
+
+		@Override
+		protected void onPostExecute(String filename) {
+			if (filename == "no_external") {
+				toast("Fehler: Kein Zugriff auf externen Speicher mÃ¶glich. (SD-Karte nicht drin?)");
+				cancel(true);
+			}
+			if (filename == "download_error") {
+				toast("Fehler beim Herunterladen der Datei.");
+				cancel(true);
+			}
+			
+			intent = new Intent(Intent.ACTION_VIEW);
+			intent.setDataAndType(Uri.fromFile(file), "application/pdf");
+			intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+			
+			pm = getPackageManager();
+			activities = pm.queryIntentActivities(intent, 0);
+			if (activities.size() > 0) {
+				startActivity(intent);
+			} else {
+				toast("Keine PDF-Anzeige-App gefunden. Bitte Adobe Reader oder einen anderen PDF-Viewer installieren.");
+			}
+		}
+
+	}
+
+	protected class DateFetcher extends AsyncTask<String, Void, String> {
+
+		private String ownURLString;
 		private URLConnection connection;
 		private String lastMod;
 		private String message;
@@ -182,21 +286,21 @@ public class VertretungsplanActivity extends Activity {
 		@Override
 		protected String doInBackground(String... params) {
 			try {
-				ownURL = params[0];
-				connection = new URL(ownURL).openConnection();
-				connection.setConnectTimeout(5000); // völlig willkürlicher Wert
+				ownURLString = params[0];
+				connection = new URL(ownURLString).openConnection();
+				connection.setConnectTimeout(5000); // vÃ¶llig willkÃ¼rlicher Wert
 				lastMod = connection.getHeaderField("Last-Modified");
 				dateRaw = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss zzz",
 						Locale.ENGLISH).parse(lastMod);
 				message = new SimpleDateFormat(
-						"'Letzte Änderung war am\n'EEEE', um 'HH:mm' Uhr'",
+						"'Letzte Ã„nderung war am\n'EEEE', um 'HH:mm' Uhr'",
 						Locale.GERMANY).format(dateRaw);
 			} catch (IOException e) {
-				message = "Fehler beim Abrufen des Änderungsdatums!";
+				message = "Fehler beim Abrufen des Ã„nderungsdatums!";
 			} catch (ParseException e) {
 				message = "Fehler bei der Datumsformatierung!";
 			} catch (NullPointerException e) {
-				message = "Fehler beim Abrufen des Server-Änderungsdatums!";
+				message = "Fehler beim Abrufen des Server-Ã„nderungsdatums!";
 				// unter der Annahme, dass der NullPointer in der Zeile
 				// "dateRaw = ... " und der Folgenden auftritt.
 			} catch (Exception e) {
@@ -212,12 +316,16 @@ public class VertretungsplanActivity extends Activity {
 		}
 	}
 
-	private class PageLoader extends AsyncTask<String, Void, Integer> {
+	protected class PageLoader extends AsyncTask<String, Void, Integer> {
 
-		private String ownURL;
+		private String ownURLString;
 		private HttpURLConnection connection;
 		private int responseCode;
 		private String customHtml;
+
+		private static final String CODE_301 = "<html><body><font size=6>Vertretungsplan f&uumlr diese Woche nicht verf&uuml;gbar!</font></body></html>";
+		private static final String CODE_404 = "<html><body><font size=6>404 Not Found: Vertretungsplan f&uuml;r diese Woche nicht verf&uumlgbar!</font></body></html>";
+		private static final String CODE_1 = "<html><body><font size=6>Verbindungsfehler.<br>Bitte Internetverbindung &uuml;berpr&uuml;fen.</font></body></html>";
 
 		@Override
 		protected void onPreExecute() {
@@ -227,16 +335,16 @@ public class VertretungsplanActivity extends Activity {
 		@Override
 		protected Integer doInBackground(String... params) {
 			try {
-				ownURL = params[0];
-				connection = (HttpURLConnection) new URL(ownURL)
+				ownURLString = params[0];
+				connection = (HttpURLConnection) new URL(ownURLString)
 						.openConnection();
-				connection.setConnectTimeout(5000); // völlig willkürlicher Wert
+				connection.setConnectTimeout(5000); // vÃ¶llig willkÃ¼rlicher Wert
 				connection.setRequestMethod("GET");
 				connection.setInstanceFollowRedirects(false);
 				connection.connect();
 				responseCode = connection.getResponseCode();
 			} catch (Exception e) {
-				responseCode = -2;
+				responseCode = 1;
 			}
 
 			return responseCode;
@@ -246,30 +354,22 @@ public class VertretungsplanActivity extends Activity {
 		protected void onPostExecute(Integer httpCode) {
 			switch (httpCode) {
 			case 200: // HTTP status code: OK --> Seite abrufen
-				webView.loadUrl(ownURL);
+				webView.loadUrl(ownURLString);
 				break;
 			case 301: // HTTP status code: Moved Permanently (kommt auf dem
 						// AKG-Server immer statt 404 error, automatische
 						// Weiterleitung auf die Hauptseite - Warum auch
 						// immer...)
-				customHtml = "<html><body><font size=6>Vertretungsplan f&uumlr diese Woche nicht verf&uumlgbar!</font></body></html>";
-				webView.loadData(customHtml, "text/html", "UTF-8");
+				webView.loadData(CODE_301, "text/html", "UTF-8");
 				break;
 			case 404: // HTTP status code: Not Found. Wird hier zwar behandelt,
 						// wird de facto aber nie passieren, wie ich das sehe
 						// (s. code 301)
-				customHtml = "<html><body><font size=6>404 Not Found: Vertretungsplan f&uumlr diese Woche nicht verf&uumlgbar!</font></body></html>";
-				webView.loadData(customHtml, "text/html", "UTF-8");
+				webView.loadData(CODE_404, "text/html", "UTF-8");
 				break;
-			case -1: // Selbstdefinierter Code für Fehler beim Ausführen des
-						// HttpCheckers
-				customHtml = "<html><body><font size=6>Fehler beim Ausführen des HttpCheckers!<br>Bitte Entwickler kontaktieren.</font></body></html>";
-				webView.loadData(customHtml, "text/html", "UTF-8");
-				break;
-			case -2: // Selbstdefinierter Code für Fehler bei der Kommunikation
-						// mit dem Server
-				customHtml = "<html><body><font size=6>Verbindungsfehler.<br>Bitte Internetverbindung überpr&uumlfen.(</font></body></html>";
-				webView.loadData(customHtml, "text/html", "UTF-8");
+			case 1: // Selbstdefinierter Code fÃ¼r Fehler bei der Kommunikation
+					// mit dem Server
+				webView.loadData(CODE_1, "text/html", "UTF-8");
 				break;
 			default:
 				customHtml = "<html><body><font size=6>Unbekannter Fehler. Code: "
