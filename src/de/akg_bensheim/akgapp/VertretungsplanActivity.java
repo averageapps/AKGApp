@@ -46,10 +46,10 @@ public class VertretungsplanActivity extends Activity {
 	protected int currentWeekDay;
 	protected int selectedWeekNumber;
 	protected String planURLString;
-	protected WebSettings webViewSettings; 
+	protected WebSettings webViewSettings;
 
 	// Diese URL-"Konstanten" müssen ggf. angepasst werden, wenn sich das CMS
-	// oder das UNTIS-Exportformat auf dem Server ändert
+	// oder der UNTIS-Export-Dateiname auf dem Server ändert:
 	protected static final String VERTRETUNGSPLAN_URL_PREFIX = "http://www.akg-bensheim.de/akgweb2011/content/Vertretung/w/";
 	protected static final String VERTRETUNGSPLAN_URL_SUFFIX = "/w00000.htm";
 	// Diese URLs müssen jedes Halbjahr neu angepasst werden:
@@ -105,7 +105,7 @@ public class VertretungsplanActivity extends Activity {
 		});
 
 		// </GUI-Initialisierung>
-		
+
 		// Wählt beim Start eine sinnvolle Woche aus
 		if (currentWeekDay == Calendar.SATURDAY
 				|| currentWeekDay == Calendar.SUNDAY) {
@@ -131,18 +131,16 @@ public class VertretungsplanActivity extends Activity {
 			startActivity(intent);
 			return true;
 		case R.id.menu_klausuren:
-			new PDFLoader()
-					.execute(KLAUSURPLAN_URL, "klausurplan.pdf");
+			new PDFLoader().execute(KLAUSURPLAN_URL, "klausurplan.pdf");
 			return true;
 		case R.id.menu_baender:
-			new PDFLoader()
-			.execute(BAENDERPLAN_URL, "baenderplan.pdf");
+			new PDFLoader().execute(BAENDERPLAN_URL, "baenderplan.pdf");
 			return true;
-		// case R.id.menu_settings:
-		// intent = new Intent(new Intent(VertretungsplanActivity.this,
-		// SettingsActivity.class));
-		// startActivity(intent);
-		// return true;
+			// case R.id.menu_settings:
+			// intent = new Intent(new Intent(VertretungsplanActivity.this,
+			// SettingsActivity.class));
+			// startActivity(intent);
+			// return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -167,10 +165,14 @@ public class VertretungsplanActivity extends Activity {
 	}
 
 	protected void loadPage(int weekNumber) {
+		// Kalenderwochennummer ggf. mit führender Null versehen
 		weekNumberPadded = String.format("%02d", weekNumber);
+		// Fertige URL zusammensetzen
 		planURLString = VERTRETUNGSPLAN_URL_PREFIX + weekNumberPadded
 				+ VERTRETUNGSPLAN_URL_SUFFIX;
+		// Seite in das WebView laden (asynchron)
 		new PageLoader().execute(planURLString);
+		// Änderungsdatum abfragen und "toasten" (asynchron)
 		new DateFetcher().execute(planURLString);
 	}
 
@@ -179,12 +181,14 @@ public class VertretungsplanActivity extends Activity {
 				.show();
 	}
 
+	// Zeigt in einem externen PDF-Viewer ein PDF an
+	// oder lädt es ggf. vorher herunter.
 	protected class PDFLoader extends AsyncTask<String, Void, String> {
-		
+
 		private boolean mExternalStorageAvailable;
 		private boolean mExternalStorageWriteable;
 		private String state;
-		
+
 		private String filename;
 		private File file;
 		private File folder;
@@ -193,42 +197,51 @@ public class VertretungsplanActivity extends Activity {
 		private List<ResolveInfo> activities;
 
 		@Override
+		protected void onPreExecute() {
+			toast("Wird geöffnet...");
+		}
+		
+		@Override
 		protected String doInBackground(String... params) {
-			
+
 			// <external-storage-check>
-			
+
 			mExternalStorageAvailable = false;
 			mExternalStorageWriteable = false;
 			state = Environment.getExternalStorageState();
 
 			if (Environment.MEDIA_MOUNTED.equals(state)) {
-			    mExternalStorageAvailable = mExternalStorageWriteable = true;
+				mExternalStorageAvailable = mExternalStorageWriteable = true;
 			} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-			    mExternalStorageAvailable = true;
-			    mExternalStorageWriteable = false;
+				mExternalStorageAvailable = true;
+				mExternalStorageWriteable = false;
 			} else {
-			    mExternalStorageAvailable = mExternalStorageWriteable = false;
+				mExternalStorageAvailable = mExternalStorageWriteable = false;
 			}
-			
-			if (! mExternalStorageAvailable) {
+
+			if (!mExternalStorageAvailable) {
 				return "no_external";
 			}
 			// Könnte man noch differenzieren, wenn man lustig ist
-			if (! mExternalStorageWriteable) {
+			// (Da ich nicht lustig bin, setze ich hier lesbar und beschreibbar
+			// gleich, in der Hoffnung, dass es niemanden stört.)
+			if (!mExternalStorageWriteable) {
 				return "no_external";
 			}
-			
+
 			// </external-storage-check>
 
 			filename = params[1];
-			file = new File(Environment.getExternalStorageDirectory(), "/akg-app/" + filename);
+			file = new File(Environment.getExternalStorageDirectory(),
+					"/akg-app/" + filename);
 			if (file.exists()) {
 				// Abbrechen, wenn die Datei schon existiert
 				return filename;
 			}
 			// Sonst: Datei herunterladen
 			try {
-				folder = new File(Environment.getExternalStorageDirectory(), "/akg-app");
+				folder = new File(Environment.getExternalStorageDirectory(),
+						"/akg-app");
 				if (!folder.exists()) {
 					folder.mkdir();
 				}
@@ -259,11 +272,10 @@ public class VertretungsplanActivity extends Activity {
 				toast("Fehler beim Herunterladen der Datei.");
 				cancel(true);
 			}
-			
 			intent = new Intent(Intent.ACTION_VIEW);
 			intent.setDataAndType(Uri.fromFile(file), "application/pdf");
 			intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-			
+
 			pm = getPackageManager();
 			activities = pm.queryIntentActivities(intent, 0);
 			if (activities.size() > 0) {
@@ -275,6 +287,8 @@ public class VertretungsplanActivity extends Activity {
 
 	}
 
+	// Ruft das "Last-Modified"-Feld aus der HTTP-Verbindung ab, wodurch
+	// festgestellt wird, wann das letzte mal etwas verändert wurde.
 	protected class DateFetcher extends AsyncTask<String, Void, String> {
 
 		private String ownURLString;
@@ -290,6 +304,7 @@ public class VertretungsplanActivity extends Activity {
 				connection = new URL(ownURLString).openConnection();
 				connection.setConnectTimeout(5000); // völlig willkürlicher Wert
 				lastMod = connection.getHeaderField("Last-Modified");
+				// Idiotisches Datumsformat in eine sinnvolle Form bringen
 				dateRaw = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss zzz",
 						Locale.ENGLISH).parse(lastMod);
 				message = new SimpleDateFormat(
@@ -306,7 +321,6 @@ public class VertretungsplanActivity extends Activity {
 			} catch (Exception e) {
 				message = "Unbekannter Fehler!";
 			}
-
 			return message;
 		}
 
@@ -316,6 +330,11 @@ public class VertretungsplanActivity extends Activity {
 		}
 	}
 
+	// Lädt Seiten aus dem Internet (daher der Name PageLoader...)
+	// Fast die ganze Klasse ist Fehlerbehandlung, das eigentliche
+	// Website-Laden ist bereits durch "webView.loadUrl(urlstring);" gegeben.
+	// Der try-catch-Block muss aber erhalten bleiben,
+	// sonst hagelt es kryptische Fehler.
 	protected class PageLoader extends AsyncTask<String, Void, Integer> {
 
 		private String ownURLString;
@@ -346,7 +365,6 @@ public class VertretungsplanActivity extends Activity {
 			} catch (Exception e) {
 				responseCode = 1;
 			}
-
 			return responseCode;
 		}
 

@@ -24,7 +24,7 @@ public class InfoActivity extends Activity {
 		Linkify.addLinks(textView, Linkify.ALL);
 	}
 
-	// Liest (beliebige) Dateien in einen String
+	// Liest eine per ID übergebene Datei in einen String
 	public String readFile(int id) {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(this
 				.getApplicationContext().getResources().openRawResource(id)));
