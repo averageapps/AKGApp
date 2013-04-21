@@ -17,7 +17,9 @@ import java.util.List;
 import java.util.Locale;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
@@ -88,6 +90,12 @@ public class VertretungsplanActivity extends Activity {
 						}
 					}
 				});
+
+		// Workaround, um die nervigen
+		// "Tip: double tap to zoom in and out"-Toasts zu verhindern
+		SharedPreferences prefs = getSharedPreferences("WebViewSettings",
+				Context.MODE_PRIVATE);
+		prefs.edit().putInt("double_tap_toast_count", 0).commit();
 
 		// teilweise fragwürdig, sollten nochmal überprüft werden:
 		webViewSettings = webView.getSettings();
@@ -200,7 +208,7 @@ public class VertretungsplanActivity extends Activity {
 		protected void onPreExecute() {
 			toast("Wird geöffnet...");
 		}
-		
+
 		@Override
 		protected String doInBackground(String... params) {
 
@@ -218,7 +226,6 @@ public class VertretungsplanActivity extends Activity {
 			} else {
 				mExternalStorageAvailable = mExternalStorageWriteable = false;
 			}
-
 			if (!mExternalStorageAvailable) {
 				return "no_external";
 			}
@@ -272,10 +279,11 @@ public class VertretungsplanActivity extends Activity {
 				toast("Fehler beim Herunterladen der Datei.");
 				cancel(true);
 			}
+			// Intent zusammenstellen, der die PDF-Anzeige einleiten soll
 			intent = new Intent(Intent.ACTION_VIEW);
 			intent.setDataAndType(Uri.fromFile(file), "application/pdf");
 			intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-
+			// Überprüfen, ob eine PDF-App installiert ist
 			pm = getPackageManager();
 			activities = pm.queryIntentActivities(intent, 0);
 			if (activities.size() > 0) {

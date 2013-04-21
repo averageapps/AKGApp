@@ -1,0 +1,24 @@
+Version 1.2
+
+- Dateigröße der App halbiert
+- Geschwindigkeit und Ressourcennutzung optimiert
+- Reagiert jetzt nicht mehr so seltsam, wenn das Gerät gedreht wird
+- Nervtötende Zoom-"Tips" entfernt
+
+
+Version 1.1
+
+- Jetzt lassen sich die Klausur- und Bänderpläne für die Oberstufe über das Menü abrufen und extern als PDF anzeigen.
+-- Die benötigten Dateien werden dazu einmalig automatisch heruntergeladen und auf dem USB-Speicher gelagert (im Unterverzeichnis "akg-app"). Sie können danach offline angesehen werden.
+-- Daher ist auch die neue Berechtigung für Zugriff auf USB-Speicherinhalte nötig.
+- Menüpunkt Info umgeschrieben
+- Code aufgeräumt, kleine Leistungs- und Stabilitätsoptimierungen
+
+
+Version 1.0
+- Erstes Play Store Release
+
+
+
+Detailliertere, für Nicht-Entwickler aber unverständliche Changelogs in der Git Commit History:
+https://github.com/averageapps/AKGApp/commits/master
