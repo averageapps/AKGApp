@@ -1,28 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
-    
-    <item android:id="@+id/menu_info"
+
+    <item
+        android:id="@+id/menu_info"
+        android:enabled="true"
         android:title="@string/info_description"
+        android:visible="true">
+    </item>
+
+    <item
+        android:id="@+id/menu_homepage"
         android:enabled="true"
+        android:title="@string/homepage_description"
         android:visible="true">
     </item>
     
-<!--     <item android:id="@+id/menu_settings" -->
-<!--         android:title="@string/settings_description" -->
-<!--         android:enabled="true" -->
-<!--         android:visible="true"> -->
-<!--     </item> -->
-    
-    <item android:id="@+id/menu_klausuren"
+    <item
+        android:id="@+id/menu_klausuren"
+        android:enabled="true"
         android:title="@string/klausuren_description"
-        android:enabled="true"
         android:visible="true">
     </item>
     
-    <item android:id="@+id/menu_baender"
+    <item
+        android:id="@+id/menu_baender"
+        android:enabled="true"
         android:title="@string/baender_description"
-        android:enabled="true"
         android:visible="true">
     </item>
     
+    <!-- <item android:id="@+id/menu_settings" -->
+    <!-- android:title="@string/settings_description" -->
+    <!-- android:enabled="true" -->
+    <!-- android:visible="true"> -->
+    <!-- </item> -->
+    
+
 </menu>

@@ -49,6 +49,8 @@ public class VertretungsplanActivity extends Activity {
 	protected int selectedWeekNumber;
 	protected String planURLString;
 	protected WebSettings webViewSettings;
+	protected Intent infoIntent;
+	protected Intent webIntent;
 
 	// Diese URL-"Konstanten" müssen ggf. angepasst werden, wenn sich das CMS
 	// oder der UNTIS-Export-Dateiname auf dem Server ändert:
@@ -131,12 +133,11 @@ public class VertretungsplanActivity extends Activity {
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		Intent intent = null;
 		switch (item.getItemId()) {
 		case R.id.menu_info:
-			intent = new Intent(new Intent(VertretungsplanActivity.this,
+			infoIntent = new Intent(new Intent(VertretungsplanActivity.this,
 					InfoActivity.class));
-			startActivity(intent);
+			startActivity(infoIntent);
 			return true;
 		case R.id.menu_klausuren:
 			new PDFLoader().execute(KLAUSURPLAN_URL, "klausurplan.pdf");
@@ -144,11 +145,15 @@ public class VertretungsplanActivity extends Activity {
 		case R.id.menu_baender:
 			new PDFLoader().execute(BAENDERPLAN_URL, "baenderplan.pdf");
 			return true;
-			// case R.id.menu_settings:
-			// intent = new Intent(new Intent(VertretungsplanActivity.this,
-			// SettingsActivity.class));
-			// startActivity(intent);
-			// return true;
+		case R.id.menu_homepage:
+			webIntent = new Intent("android.intent.action.VIEW",
+					Uri.parse("http://www.akg-bensheim.de"));
+			startActivity(webIntent);
+		// case R.id.menu_settings:
+		// intent = new Intent(new Intent(VertretungsplanActivity.this,
+		// SettingsActivity.class));
+		// startActivity(intent);
+		// return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -200,7 +205,7 @@ public class VertretungsplanActivity extends Activity {
 		private String filename;
 		private File file;
 		private File folder;
-		private Intent intent;
+		private Intent pdfIntent;
 		private PackageManager pm;
 		private List<ResolveInfo> activities;
 
@@ -280,14 +285,14 @@ public class VertretungsplanActivity extends Activity {
 				cancel(true);
 			}
 			// Intent zusammenstellen, der die PDF-Anzeige einleiten soll
-			intent = new Intent(Intent.ACTION_VIEW);
-			intent.setDataAndType(Uri.fromFile(file), "application/pdf");
-			intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+			pdfIntent = new Intent(Intent.ACTION_VIEW);
+			pdfIntent.setDataAndType(Uri.fromFile(file), "application/pdf");
+			pdfIntent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 			// Überprüfen, ob eine PDF-App installiert ist
 			pm = getPackageManager();
-			activities = pm.queryIntentActivities(intent, 0);
+			activities = pm.queryIntentActivities(pdfIntent, 0);
 			if (activities.size() > 0) {
-				startActivity(intent);
+				startActivity(pdfIntent);
 			} else {
 				toast("Keine PDF-Anzeige-App gefunden. Bitte Adobe Reader oder einen anderen PDF-Viewer installieren.");
 			}
@@ -338,7 +343,7 @@ public class VertretungsplanActivity extends Activity {
 		}
 	}
 
-	// Lädt Seiten aus dem Internet (daher der Name PageLoader...)
+	// Lädt Seiten aus dem Internet
 	// Fast die ganze Klasse ist Fehlerbehandlung, das eigentliche
 	// Website-Laden ist bereits durch "webView.loadUrl(urlstring);" gegeben.
 	// Der try-catch-Block muss aber erhalten bleiben,
