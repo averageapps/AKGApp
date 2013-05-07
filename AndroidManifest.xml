@@ -29,10 +29,6 @@
             android:name="de.akg_bensheim.akgapp.InfoActivity"
             android:label="@string/title_activity_info" >
         </activity>
-        <activity
-            android:name="de.akg_bensheim.akgapp.DocumentActivity"
-            android:label="@string/title_activity_document" >
-        </activity>
     </application>
 
 </manifest>
