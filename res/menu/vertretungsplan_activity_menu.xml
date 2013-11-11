@@ -14,26 +14,11 @@
         android:title="@string/homepage_description"
         android:visible="true">
     </item>
-    
-    <item
-        android:id="@+id/menu_klausuren"
-        android:enabled="true"
-        android:title="@string/klausuren_description"
-        android:visible="true">
-    </item>
-    
-    <item
-        android:id="@+id/menu_baender"
-        android:enabled="true"
-        android:title="@string/baender_description"
-        android:visible="true">
-    </item>
-    
+
     <!-- <item android:id="@+id/menu_settings" -->
     <!-- android:title="@string/settings_description" -->
     <!-- android:enabled="true" -->
     <!-- android:visible="true"> -->
     <!-- </item> -->
-    
 
 </menu>

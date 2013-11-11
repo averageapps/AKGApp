@@ -4,12 +4,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,7 +17,7 @@ import android.widget.ImageButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
@@ -28,7 +25,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 public class VertretungsplanActivity extends Activity {
@@ -50,9 +46,6 @@ public class VertretungsplanActivity extends Activity {
     // oder der UNTIS-Export-Dateiname auf dem Server ändert:
     protected static final String VERTRETUNGSPLAN_URL_PREFIX = "http://www.akg-bensheim.de/akgweb2011/content/Vertretung/w/";
     protected static final String VERTRETUNGSPLAN_URL_SUFFIX = "/w00000.htm";
-    // Diese URLs müssen jedes Halbjahr neu angepasst werden:
-    protected static final String KLAUSURPLAN_URL = "http://www.akg-bensheim.de/akgweb2011/mediaCache/KlausurPlan_2.Hj12_13/";
-    protected static final String BAENDERPLAN_URL = "http://www.akg-bensheim.de/akgweb2011/mediaCache/Baenderuebersicht_GO_2012-13/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,7 +86,6 @@ public class VertretungsplanActivity extends Activity {
                 Context.MODE_PRIVATE);
         prefs.edit().putInt("double_tap_toast_count", 0).commit();
 
-        // teilweise fragwürdig, sollten nochmal überprüft werden:
         webViewSettings = webView.getSettings();
         webViewSettings.setUseWideViewPort(true);
         webViewSettings.setLoadWithOverviewMode(true);
@@ -132,12 +124,6 @@ public class VertretungsplanActivity extends Activity {
                 infoIntent = new Intent(new Intent(VertretungsplanActivity.this,
                         InfoActivity.class));
                 startActivity(infoIntent);
-                return true;
-            case R.id.menu_klausuren:
-                new PDFLoader().execute(KLAUSURPLAN_URL, "klausurplan.pdf");
-                return true;
-            case R.id.menu_baender:
-                new PDFLoader().execute(BAENDERPLAN_URL, "baenderplan.pdf");
                 return true;
             case R.id.menu_homepage:
                 webIntent = new Intent("android.intent.action.VIEW",
@@ -189,123 +175,16 @@ public class VertretungsplanActivity extends Activity {
                 .show();
     }
 
-    // Zeigt in einem externen PDF-Viewer ein PDF an
-    // oder lädt es ggf. vorher herunter.
-    protected class PDFLoader extends AsyncTask<String, Void, String> {
-
-        private boolean mExternalStorageAvailable;
-        private boolean mExternalStorageWriteable;
-        private String state;
-
-        private String filename;
-        private File file;
-        private File folder;
-        private Intent pdfIntent;
-        private PackageManager pm;
-        private List<ResolveInfo> activities;
-
-        @Override
-        protected void onPreExecute() {
-            toast("Wird geöffnet...");
-        }
-
-        @Override
-        protected String doInBackground(String... params) {
-
-            // <external-storage-check>
-
-            mExternalStorageAvailable = false;
-            mExternalStorageWriteable = false;
-            state = Environment.getExternalStorageState();
-
-            if (Environment.MEDIA_MOUNTED.equals(state)) {
-                mExternalStorageAvailable = mExternalStorageWriteable = true;
-            } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-                mExternalStorageAvailable = true;
-                mExternalStorageWriteable = false;
-            } else {
-                mExternalStorageAvailable = mExternalStorageWriteable = false;
-            }
-            if (!mExternalStorageAvailable) {
-                return "no_external";
-            }
-            // Könnte man noch differenzieren, wenn man lustig ist
-            // (Da ich nicht lustig bin, setze ich hier lesbar und beschreibbar
-            // gleich, in der Hoffnung, dass es niemanden stört.)
-            if (!mExternalStorageWriteable) {
-                return "no_external";
-            }
-
-            // </external-storage-check>
-
-            filename = params[1];
-            file = new File(Environment.getExternalStorageDirectory(),
-                    "/akg-app/" + filename);
-            if (file.exists()) {
-                // Abbrechen, wenn die Datei schon existiert
-                return filename;
-            }
-            // Sonst: Datei herunterladen
-            try {
-                folder = new File(Environment.getExternalStorageDirectory(),
-                        "/akg-app");
-                if (!folder.exists()) {
-                    //noinspection ResultOfMethodCallIgnored
-                    folder.mkdir();
-                }
-                URL url = new URL(params[0]);
-                InputStream input = new BufferedInputStream(url.openStream());
-                OutputStream output = new FileOutputStream(file);
-                byte data[] = new byte[1024];
-                int count;
-                while ((count = input.read(data)) != -1) {
-                    output.write(data, 0, count);
-                }
-                output.flush();
-                output.close();
-                input.close();
-            } catch (Exception e) {
-                return "download_error";
-            }
-            return filename;
-        }
-
-        @Override
-        protected void onPostExecute(String filename) {
-            if (filename.equals("no_external")) {
-                toast("Fehler: Kein Zugriff auf externen Speicher möglich. (SD-Karte nicht drin?)");
-                cancel(true);
-            }
-            if (filename.equals("download_error")) {
-                toast("Fehler beim Herunterladen der Datei.");
-                cancel(true);
-            }
-            // Intent zusammenstellen, der die PDF-Anzeige einleiten soll
-            pdfIntent = new Intent(Intent.ACTION_VIEW);
-            pdfIntent.setDataAndType(Uri.fromFile(file), "application/pdf");
-            pdfIntent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-            // Überprüfen, ob eine PDF-App installiert ist
-            pm = getPackageManager();
-            activities = pm.queryIntentActivities(pdfIntent, 0);
-            if (activities.size() > 0) {
-                startActivity(pdfIntent);
-            } else {
-                toast("Keine PDF-Anzeige-App gefunden. Bitte Adobe Reader oder einen anderen PDF-Viewer installieren.");
-            }
-        }
-
-    }
-
     // Ruft das "Last-Modified"-Feld aus der HTTP-Verbindung ab, wodurch
     // festgestellt wird, wann das letzte mal etwas verändert wurde.
     protected class DateFetcher extends AsyncTask<String, Void, String> {
 
         private String ownURLString;
+
         private URLConnection connection;
         private String lastMod;
         private String message;
         private Date dateRaw;
-
         @Override
         protected String doInBackground(String... params) {
             try {
@@ -313,7 +192,7 @@ public class VertretungsplanActivity extends Activity {
                 connection = new URL(ownURLString).openConnection();
                 connection.setConnectTimeout(5000); // völlig willkürlicher Wert
                 lastMod = connection.getHeaderField("Last-Modified");
-                // Idiotisches Datumsformat in eine sinnvolle Form bringen
+                // Idiotisches Datumsformat, das der Server ausgibt,  in eine sinnvolle Form bringen
                 dateRaw = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss zzz",
                         Locale.ENGLISH).parse(lastMod);
                 message = new SimpleDateFormat(
@@ -337,24 +216,20 @@ public class VertretungsplanActivity extends Activity {
         protected void onPostExecute(String msg) {
             toast(msg);
         }
-    }
 
+    }
     // Lädt Seiten aus dem Internet
-    // Fast die ganze Klasse ist Fehlerbehandlung, das eigentliche
-    // Website-Laden ist bereits durch "webView.loadUrl(urlstring);" gegeben.
-    // Der try-catch-Block muss aber erhalten bleiben,
-    // sonst hagelt es kryptische Fehler.
     protected class PageLoader extends AsyncTask<String, Void, Integer> {
 
         private String ownURLString;
+
         private HttpURLConnection connection;
         private int responseCode;
         private String customHtml;
-
         private static final String CODE_301 = "<html><body><font size=6>Vertretungsplan f&uumlr diese Woche nicht verf&uuml;gbar!</font></body></html>";
+
         private static final String CODE_404 = "<html><body><font size=6>404 Not Found: Vertretungsplan f&uuml;r diese Woche nicht verf&uumlgbar!</font></body></html>";
         private static final String CODE_1 = "<html><body><font size=6>Verbindungsfehler.<br>Bitte Internetverbindung &uuml;berpr&uuml;fen.</font></body></html>";
-
         @Override
         protected void onPreExecute() {
             setControlsEnabled(false);
@@ -376,6 +251,7 @@ public class VertretungsplanActivity extends Activity {
             }
             return responseCode;
         }
+
 
         @Override
         protected void onPostExecute(Integer httpCode) {

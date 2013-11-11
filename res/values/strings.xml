@@ -7,8 +7,6 @@
     <string name="nextWeek">Nächste Woche</string>
     <string name="title_activity_info">Informationen</string>
     <string name="info_description">Info</string>
-    <string name="klausuren_description">Klausurplan</string>
     <string name="homepage_description">AKG-Homepage</string>
-    <string name="baender_description">Bänderplan</string>
 
 </resources>
